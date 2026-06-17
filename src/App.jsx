@@ -6,7 +6,6 @@ import HomeScreen from './components/HomeScreen.jsx';
 import EmotionScreen from './components/EmotionScreen.jsx';
 import SettingsScreen from './components/SettingsScreen.jsx';
 import { useMemos, useEmotions, useSettings } from './hooks/useStorage.js';
-import { memoStorage } from './utils/storage.js';
 
 const TABS = [
   { key: 'home', icon: Home, label: '홈' },
