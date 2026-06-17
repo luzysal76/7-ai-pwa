@@ -1,0 +1,27 @@
+{
+  "name": "플로팅 메모",
+  "short_name": "메모",
+  "description": "생각이 떠오를 때 바로 적는 플로팅 메모 앱",
+  "start_url": "/7-ai-pwa/",
+  "scope": "/7-ai-pwa/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/7-ai-pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/7-ai-pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "ko"
+}
