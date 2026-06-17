@@ -12,9 +12,10 @@ const EMOTIONS = [
   { emoji: '💪', label: '의욕' },
 ];
 
-export default function MemoModal({ onClose, onSave, onSaveEmotion }) {
+export default function MemoModal({ onClose, onSave, onSaveEmotion, initialMode }) {
+  const resolvedInit = initialMode === 'voice' ? 'voice' : initialMode === 'task' || initialMode === 'focus' ? 'task' : 'text';
   const [text, setText] = useState('');
-  const [mode, setMode] = useState('text'); // 'text' | 'voice' | 'task'
+  const [mode, setMode] = useState(resolvedInit);
   const [recording, setRecording] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [showEmotionPicker, setShowEmotionPicker] = useState(false);
