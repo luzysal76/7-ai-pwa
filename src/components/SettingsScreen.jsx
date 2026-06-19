@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Bell, Trash2, Download, ChevronRight, Monitor, Brain, Clock, Shield } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications.js';
 

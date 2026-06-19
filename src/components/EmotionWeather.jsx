@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 export const WEATHERS = [
   { key: 'sunny',   emoji: '☀️', label: '맑음',  desc: '행복/활기', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
   { key: 'cloudy',  emoji: '☁️', label: '흐림',  desc: '무기력/지침', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },

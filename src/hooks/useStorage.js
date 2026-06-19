@@ -63,7 +63,17 @@ export function useEmotions() {
     return s;
   }, [emotions]);
 
-  const weeklyTrend = useMemo(() => emotionStorage.getWeeklyTrend(), [emotions]);
+  // Derive weeklyTrend directly from emotions state (no extra localStorage read)
+  const weeklyTrend = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const dateStr = d.toDateString();
+      const dayEmotions = emotions.filter(e => e.date === dateStr);
+      days.push({ date: d, dateStr, emotions: dayEmotions, primary: dayEmotions[dayEmotions.length - 1]?.emotion || null });
+    }
+    return days;
+  }, [emotions]);
 
   return { emotions, addEmotion, stats, weeklyTrend };
 }

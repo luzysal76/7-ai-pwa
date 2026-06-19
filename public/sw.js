@@ -1,3 +1,4 @@
+/* global clients */
 const CACHE_NAME = 'floating-memo-v1';
 const ASSETS = [
   '/7-ai-pwa/',

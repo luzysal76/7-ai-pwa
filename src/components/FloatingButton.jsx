@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import RadialMenu from './RadialMenu.jsx';
 
-export default function FloatingButton({ onClick, onLongPress, templates = [], settings = {} }) {
+export default function FloatingButton({ onClick, templates = [], settings = {} }) {
   const btnSize = settings.btnSize || 56;
   const opacity = (settings.btnOpacity || 90) / 100;
   const snapToCorner = settings.snapToCorner !== false;
@@ -56,7 +56,8 @@ export default function FloatingButton({ onClick, onLongPress, templates = [], s
       const show = () => resetAutoHide();
       window.addEventListener('touchstart', show, { passive: true });
       window.addEventListener('click', show);
-      resetAutoHide();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      resetAutoHide(); // intentional: start the initial auto-hide timer on mount
       return () => { window.removeEventListener('touchstart', show); window.removeEventListener('click', show); };
     }
   }, [autoHideDelay, resetAutoHide]);
@@ -67,7 +68,6 @@ export default function FloatingButton({ onClick, onLongPress, templates = [], s
     const m = 12;
     const clampY = Math.max(m + btnSize / 2, Math.min(h - 60 - btnSize / 2 - m, y));
     if (snapToCorner) {
-      const snapX = x < w / 2 ? m + btnSize / 2 : w - m - btnSize / 2;
       const corners = [
         { x: m + btnSize / 2, y: 80 + btnSize / 2 },
         { x: w - m - btnSize / 2, y: 80 + btnSize / 2 },
@@ -120,7 +120,7 @@ export default function FloatingButton({ onClick, onLongPress, templates = [], s
     setDropZone(getDropZone(newX));
   }, []);
 
-  const handleTouchEnd = useCallback((e) => {
+  const handleTouchEnd = useCallback(() => {
     clearTimeout(longPressTimer.current);
     if (radialVisible) return;
 

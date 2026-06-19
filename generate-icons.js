@@ -1,4 +1,5 @@
-// Simple PNG icon generator without external deps
+/* eslint-disable */
+// Simple PNG icon generator without external deps (Node.js script, not bundled)
 // Uses raw PNG byte construction
 
 import { createWriteStream } from 'fs';

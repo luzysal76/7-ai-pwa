@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { settingsStorage } from '../utils/storage.js';
 
 export function useNotifications() {

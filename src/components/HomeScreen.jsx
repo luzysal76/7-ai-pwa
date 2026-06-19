@@ -98,14 +98,6 @@ export default function HomeScreen({ memos, onToggle, onDelete, onSetFocus, focu
 
   const allMemos = filter === 'all' ? memos : memos.filter(m => m.type === filter);
 
-  // Auto-show briefing once — fires when taskCount becomes > 0 on first mount
-  useEffect(() => {
-    if (!briefingDoneRef.current && taskCount > 0) {
-      briefingDoneRef.current = true;
-      handleGenerateBriefing();
-    }
-  }, [taskCount, handleGenerateBriefing]);
-
   const handleGenerateBriefing = useCallback(async () => {
     setLoadingBriefing(true);
     const tasks = todayMemos.filter(m => m.type === 'task' && !m.done);
@@ -113,6 +105,14 @@ export default function HomeScreen({ memos, onToggle, onDelete, onSetFocus, focu
     setBriefing(text);
     setLoadingBriefing(false);
   }, [todayMemos, counselorMode]);
+
+  // B-6: auto-show briefing once — useEffect placed AFTER handleGenerateBriefing declaration
+  useEffect(() => {
+    if (!briefingDoneRef.current && taskCount > 0) {
+      briefingDoneRef.current = true;
+      handleGenerateBriefing();
+    }
+  }, [taskCount, handleGenerateBriefing]);
 
   const toggleSpeak = useCallback(() => {
     if (isSpeaking) {

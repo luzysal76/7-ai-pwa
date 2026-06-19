@@ -8,6 +8,7 @@ import SettingsScreen from './components/SettingsScreen.jsx';
 import AnalyticsScreen from './components/AnalyticsScreen.jsx';
 import AIConsentModal from './components/AIConsentModal.jsx'; // S-1
 import { PRIORITY_COLORS } from './constants/priority.js'; // Q-1
+import { settingsStorage } from './utils/storage.js'; // S-1 initial consent check
 import { useMemos, useEmotions, useSettings, useWeather, useReports, useTemplates } from './hooks/useStorage.js';
 
 const TABS = [
@@ -37,7 +38,10 @@ function usePomodoroHide(minutes, triggerRef) {
     setPomodoroHidden(false);
   }, []);
 
-  triggerRef.current = { start, stop };
+  // B-7 fix: move ref assignment to effect — avoids ref mutation during render
+  useEffect(() => {
+    triggerRef.current = { start, stop };
+  }, [start, stop, triggerRef]);
   return pomodoroHidden;
 }
 
@@ -45,16 +49,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('normal'); // 'normal' | 'voice' | 'task' | 'focus'
-  const [showConsent, setShowConsent] = useState(false); // S-1
+  // S-1: initialize from storage directly — avoids cascading setState-in-effect
+  const [showConsent, setShowConsent] = useState(() => !settingsStorage.get().aiConsented);
 
   const { memos, addMemo, updateMemo, deleteMemo, toggleDone, setFocusGoal, focusGoal } = useMemos();
   const { emotions, addEmotion, stats, weeklyTrend } = useEmotions();
   const { settings, updateSettings } = useSettings();
-
-  // S-1: show consent on first launch if not yet consented
-  useEffect(() => {
-    if (!settings.aiConsented) setShowConsent(true);
-  }, []); // eslint-disable-line
   const { todayWeather, setWeather, last30Days } = useWeather();
   const { reports, addReport } = useReports();
   const { templates, updateTemplate } = useTemplates();
@@ -94,7 +94,7 @@ export default function App() {
   }, []);
 
   // Floating button click handler
-  const handleFloatClick = useCallback((type, tpl) => {
+  const handleFloatClick = useCallback((type) => {
     if (type === 'voice') {
       setModalMode('voice');
     } else if (type === 'task') {
@@ -244,7 +244,6 @@ export default function App() {
 function TasksScreen({ memos, onToggle, onDelete, onSetFocus, focusGoal }) {
   const pending = memos.filter(m => !m.done);
   const done = memos.filter(m => m.done);
-  const P = { high: '#f87171', mid: '#fbbf24', low: '#34d399' };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">

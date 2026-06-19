@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Mic, MicOff, CheckSquare, FileText, Sparkles, Send } from 'lucide-react';
+import { X, Mic, MicOff, CheckSquare, FileText, Send } from 'lucide-react';
 
 const EMOTIONS = [
   { emoji: '😊', label: '행복' },
@@ -16,7 +16,6 @@ export default function MemoModal({ onClose, onSave, onSaveEmotion, initialMode 
   const resolvedInit = initialMode === 'voice' ? 'voice' : initialMode === 'task' || initialMode === 'focus' ? 'task' : 'text';
   const [text, setText] = useState('');
   const [mode, setMode] = useState(resolvedInit);
-  const [recording, setRecording] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [showEmotionPicker, setShowEmotionPicker] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
@@ -38,7 +37,7 @@ export default function MemoModal({ onClose, onSave, onSaveEmotion, initialMode 
         recognitionRef.current.onresult = null;
         recognitionRef.current.onend = null;
         recognitionRef.current.onerror = null;
-        try { recognitionRef.current.stop(); } catch {}
+        try { recognitionRef.current.stop(); } catch { /* ignore stop error on unmount */ }
       }
     };
   }, []);
