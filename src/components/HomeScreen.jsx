@@ -1,14 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { CheckCircle2, Circle, RefreshCw, Sparkles, Bell, Volume2, VolumeX, Target } from 'lucide-react';
 import SwipeableCard from './SwipeableCard.jsx';
 import { WeatherWidget } from './EmotionWeather.jsx';
 import { classifyTasks, generateMorningBriefing } from '../utils/ai.js';
-
-const PRIORITY_COLORS = {
-  high: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', text: '#f87171', label: '긴급' },
-  mid:  { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24', label: '보통' },
-  low:  { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)', text: '#34d399', label: '여유' },
-};
+import { PRIORITY_COLORS } from '../constants/priority.js'; // Q-1
 
 const TYPE_ICONS = { task: '☑️', voice: '🎙️', text: '📝' };
 
@@ -93,7 +88,8 @@ export default function HomeScreen({ memos, onToggle, onDelete, onSetFocus, focu
   const [loadingAI, setLoadingAI] = useState(false);
   const [loadingBriefing, setLoadingBriefing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [briefingShown, setBriefingShown] = useState(false);
+  // B-6: useRef flag prevents stale closure + correctly fires after data loads
+  const briefingDoneRef = useRef(false);
 
   const today = new Date().toDateString();
   const todayMemos = memos.filter(m => new Date(m.createdAt).toDateString() === today);
@@ -102,13 +98,13 @@ export default function HomeScreen({ memos, onToggle, onDelete, onSetFocus, focu
 
   const allMemos = filter === 'all' ? memos : memos.filter(m => m.type === filter);
 
-  // Auto-show briefing once
+  // Auto-show briefing once — fires when taskCount becomes > 0 on first mount
   useEffect(() => {
-    if (!briefingShown && taskCount > 0) {
-      setBriefingShown(true);
+    if (!briefingDoneRef.current && taskCount > 0) {
+      briefingDoneRef.current = true;
       handleGenerateBriefing();
     }
-  }, []); // eslint-disable-line
+  }, [taskCount, handleGenerateBriefing]);
 
   const handleGenerateBriefing = useCallback(async () => {
     setLoadingBriefing(true);

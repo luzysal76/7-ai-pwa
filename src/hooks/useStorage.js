@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { memoStorage, emotionStorage, settingsStorage, weatherStorage, reportStorage, templateStorage } from '../utils/storage.js';
 
 export function useMemos() {
@@ -6,36 +6,44 @@ export function useMemos() {
 
   const refresh = useCallback(() => setMemos(memoStorage.getAll()), []);
 
+  // P-3: use functional updates to avoid extra localStorage reads
   const addMemo = useCallback((memo) => {
     const newMemo = memoStorage.add(memo);
-    setMemos(memoStorage.getAll());
+    setMemos(prev => [newMemo, ...prev]);
     return newMemo;
   }, []);
 
   const updateMemo = useCallback((id, updates) => {
     memoStorage.update(id, updates);
-    setMemos(memoStorage.getAll());
+    const ts = new Date().toISOString();
+    setMemos(prev => prev.map(m => m.id === id ? { ...m, ...updates, updatedAt: ts } : m));
   }, []);
 
   const deleteMemo = useCallback((id) => {
     memoStorage.delete(id);
-    setMemos(memoStorage.getAll());
+    setMemos(prev => prev.filter(m => m.id !== id));
   }, []);
 
   const toggleDone = useCallback((id) => {
-    const memo = memoStorage.getAll().find(m => m.id === id);
-    if (memo) {
+    setMemos(prev => {
+      const memo = prev.find(m => m.id === id);
+      if (!memo) return prev;
+      const ts = new Date().toISOString();
       memoStorage.update(id, { done: !memo.done });
-      setMemos(memoStorage.getAll());
-    }
+      return prev.map(m => m.id === id ? { ...m, done: !m.done, updatedAt: ts } : m);
+    });
   }, []);
 
   const setFocusGoal = useCallback((id) => {
     memoStorage.setFocusGoal(id);
-    setMemos(memoStorage.getAll());
+    setMemos(prev => prev.map(m => ({ ...m, isFocus: m.id === id })));
   }, []);
 
-  const focusGoal = memoStorage.getFocusGoal();
+  // P-4: derive focusGoal from state — no extra localStorage read
+  const focusGoal = useMemo(() => {
+    const today = new Date().toDateString();
+    return memos.find(m => m.isFocus && new Date(m.updatedAt).toDateString() === today) || null;
+  }, [memos]);
 
   return { memos, addMemo, updateMemo, deleteMemo, toggleDone, setFocusGoal, focusGoal, refresh };
 }
@@ -48,12 +56,16 @@ export function useEmotions() {
     setEmotions(emotionStorage.getAll());
   }, []);
 
-  return {
-    emotions,
-    addEmotion,
-    stats: emotionStorage.getStats(),
-    weeklyTrend: emotionStorage.getWeeklyTrend(),
-  };
+  // P-4: memoize stats & weeklyTrend — previously re-computed on every render
+  const stats = useMemo(() => {
+    const s = {};
+    emotions.forEach(e => { s[e.emotion] = (s[e.emotion] || 0) + 1; });
+    return s;
+  }, [emotions]);
+
+  const weeklyTrend = useMemo(() => emotionStorage.getWeeklyTrend(), [emotions]);
+
+  return { emotions, addEmotion, stats, weeklyTrend };
 }
 
 export function useWeather() {

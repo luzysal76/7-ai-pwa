@@ -6,6 +6,8 @@ import HomeScreen from './components/HomeScreen.jsx';
 import EmotionScreen from './components/EmotionScreen.jsx';
 import SettingsScreen from './components/SettingsScreen.jsx';
 import AnalyticsScreen from './components/AnalyticsScreen.jsx';
+import AIConsentModal from './components/AIConsentModal.jsx'; // S-1
+import { PRIORITY_COLORS } from './constants/priority.js'; // Q-1
 import { useMemos, useEmotions, useSettings, useWeather, useReports, useTemplates } from './hooks/useStorage.js';
 
 const TABS = [
@@ -43,10 +45,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('normal'); // 'normal' | 'voice' | 'task' | 'focus'
+  const [showConsent, setShowConsent] = useState(false); // S-1
 
   const { memos, addMemo, updateMemo, deleteMemo, toggleDone, setFocusGoal, focusGoal } = useMemos();
   const { emotions, addEmotion, stats, weeklyTrend } = useEmotions();
   const { settings, updateSettings } = useSettings();
+
+  // S-1: show consent on first launch if not yet consented
+  useEffect(() => {
+    if (!settings.aiConsented) setShowConsent(true);
+  }, []); // eslint-disable-line
   const { todayWeather, setWeather, last30Days } = useWeather();
   const { reports, addReport } = useReports();
   const { templates, updateTemplate } = useTemplates();
@@ -126,6 +134,12 @@ export default function App() {
         <FloatingButton onClick={handleFloatClick} templates={templates} settings={settings} />
         {showModal && (
           <MemoModal initialMode={modalMode} onClose={() => setShowModal(false)} onSave={handleSaveMemo} onSaveEmotion={handleSaveEmotion} />
+        )}
+        {showConsent && (
+          <AIConsentModal
+            onAccept={() => { updateSettings({ aiConsented: true }); setShowConsent(false); }}
+            onDecline={() => { updateSettings({ aiConsented: false }); setShowConsent(false); }}
+          />
         )}
       </div>
     );
@@ -214,6 +228,14 @@ export default function App() {
       {showModal && (
         <MemoModal initialMode={modalMode} onClose={() => setShowModal(false)} onSave={handleSaveMemo} onSaveEmotion={handleSaveEmotion} />
       )}
+
+      {/* S-1: AI 개인정보 동의 모달 (첫 실행 시) */}
+      {showConsent && (
+        <AIConsentModal
+          onAccept={() => { updateSettings({ aiConsented: true }); setShowConsent(false); }}
+          onDecline={() => { updateSettings({ aiConsented: false }); setShowConsent(false); }}
+        />
+      )}
     </div>
   );
 }
@@ -251,7 +273,6 @@ function TasksScreen({ memos, onToggle, onDelete, onSetFocus, focusGoal }) {
 }
 
 function TaskItem({ memo, onToggle, onDelete, onSetFocus, isFocus, done }) {
-  const P = { high: '#f87171', mid: '#fbbf24', low: '#34d399' };
   return (
     <div className="flex items-center gap-3 py-3 px-3 rounded-xl mb-2 transition-all"
       style={{ background: isFocus ? 'rgba(99,102,241,0.12)' : done ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isFocus ? 'rgba(99,102,241,0.3)' : done ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`, opacity: done ? 0.5 : 1 }}>
@@ -264,7 +285,7 @@ function TaskItem({ memo, onToggle, onDelete, onSetFocus, isFocus, done }) {
       <p className="flex-1 text-sm" style={{ textDecoration: done ? 'line-through' : 'none', color: done ? '#475569' : '#e2e8f0' }}>
         {isFocus && '🎯 '}{memo.content}
       </p>
-      {memo.priority && <div className="w-2 h-2 rounded-full" style={{ background: P[memo.priority] || '#475569' }} />}
+      {memo.priority && <div className="w-2 h-2 rounded-full" style={{ background: PRIORITY_COLORS[memo.priority]?.text || '#475569' }} />}
       {onSetFocus && !done && (
         <button onClick={() => onSetFocus(memo.id)} style={{ color: isFocus ? '#6366f1' : '#334155', fontSize: 14 }}>🎯</button>
       )}

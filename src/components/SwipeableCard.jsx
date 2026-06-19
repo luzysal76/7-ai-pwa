@@ -47,10 +47,14 @@ export default function SwipeableCard({ children, onDelete, onComplete, style, c
       setCommitted(true);
       setTimeout(() => onDelete?.(), 280);
     } else if (offset > THRESHOLD) {
-      // Complete
-      setOffset(window.innerWidth);
-      setCommitted(true);
-      setTimeout(() => onComplete?.(), 280);
+      // Complete — only commit if handler exists; otherwise rubber-band back (B-3)
+      if (onComplete) {
+        setOffset(window.innerWidth);
+        setCommitted(true);
+        setTimeout(() => onComplete(), 280);
+      } else {
+        setOffset(0);
+      }
     } else {
       setOffset(0);
     }

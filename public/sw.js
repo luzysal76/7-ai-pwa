@@ -66,3 +66,19 @@ self.addEventListener('push', (e) => {
     })
   );
 });
+
+// W-2: 메시지 기반 알림 예약 — 탭이 닫혀도 SW가 살아있으면 알림 전송
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SCHEDULE_NOTIFICATION') {
+    const { title, body, delay, tag } = e.data;
+    setTimeout(() => {
+      self.registration.showNotification(title || '플로팅 메모', {
+        body: body || '',
+        icon: '/7-ai-pwa/icon-192.png',
+        badge: '/7-ai-pwa/icon-192.png',
+        tag: tag || 'scheduled-notification',
+        requireInteraction: false,
+      });
+    }, delay || 0);
+  }
+});

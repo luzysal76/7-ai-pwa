@@ -22,7 +22,7 @@ export const memoStorage = {
   add(memo) {
     const memos = this.getAll();
     const newMemo = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       content: memo.content || '',
       type: memo.type || 'text',
       emotion: memo.emotion || null,
@@ -69,7 +69,7 @@ export const emotionStorage = {
   getAll() { return storage.get('emotions', []); },
   add(emotion, note = '') {
     const emotions = this.getAll();
-    emotions.push({ id: Date.now().toString(), emotion, note, date: new Date().toDateString(), createdAt: new Date().toISOString() });
+    emotions.push({ id: crypto.randomUUID(), emotion, note, date: new Date().toDateString(), createdAt: new Date().toISOString() });
     storage.set('emotions', emotions);
   },
   getStats() {
@@ -122,7 +122,7 @@ export const reportStorage = {
   getAll() { return storage.get('reports', []); },
   add(report) {
     const reports = this.getAll();
-    reports.unshift({ id: Date.now().toString(), ...report, createdAt: new Date().toISOString() });
+    reports.unshift({ id: crypto.randomUUID(), ...report, createdAt: new Date().toISOString() });
     storage.set('reports', reports.slice(0, 10)); // keep last 10
   }
 };
@@ -164,6 +164,8 @@ export const settingsStorage = {
       btnOpacity: 90,
       snapToCorner: true,
       autoHideDelay: 5,  // seconds, 0 = off
+      // AI consent (S-1)
+      aiConsented: false,
       // Mode
       simpleMode: false,
       counselorMode: false,

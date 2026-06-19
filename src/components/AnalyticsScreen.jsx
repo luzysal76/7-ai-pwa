@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { RefreshCw, TrendingUp, Award, BarChart2, BookOpen } from 'lucide-react';
 import { WeatherHeatmap } from './EmotionWeather.jsx';
 import { generateWeeklyReport, analyzePatterns, generatePatternMessage } from '../utils/ai.js';
@@ -9,24 +9,40 @@ export default function AnalyticsScreen({ memos, emotions, last30Days, reports, 
   const [patternMessages, setPatternMessages] = useState({});
   const [loadingPatterns, setLoadingPatterns] = useState(false);
 
-  // Compute weekly stats
-  const now = new Date();
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
-  const weekMemos = memos.filter(m => new Date(m.createdAt) >= weekStart);
-  const weekDone = weekMemos.filter(m => m.done).length;
-  const weekTotal = weekMemos.filter(m => m.type === 'task').length;
-  const weekEmotions = emotions.filter(e => new Date(e.createdAt) >= weekStart);
+  // P-1: now fixed at mount time — avoids new Date() on every render
+  const now = useMemo(() => new Date(), []);
 
-  // Top emotions this week
-  const emotionCount = {};
-  weekEmotions.forEach(e => { emotionCount[e.emotion] = (emotionCount[e.emotion] || 0) + 1; });
-  const topEmotions = Object.entries(emotionCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+  // P-2: memoize all weekly aggregations
+  const weekStart = useMemo(() => {
+    const d = new Date(now); d.setDate(now.getDate() - 7); return d;
+  }, [now]);
 
-  // Top keywords (simple word freq)
-  const words = weekMemos.flatMap(m => m.content.split(/\s+/).filter(w => w.length > 1));
-  const wordCount = {};
-  words.forEach(w => { wordCount[w] = (wordCount[w] || 0) + 1; });
-  const topKeywords = Object.entries(wordCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+  const weekMemos = useMemo(
+    () => memos.filter(m => new Date(m.createdAt) >= weekStart),
+    [memos, weekStart]
+  );
+
+  const weekDone = useMemo(() => weekMemos.filter(m => m.done).length, [weekMemos]);
+  const weekTotal = useMemo(() => weekMemos.filter(m => m.type === 'task').length, [weekMemos]);
+
+  const weekEmotions = useMemo(
+    () => emotions.filter(e => new Date(e.createdAt) >= weekStart),
+    [emotions, weekStart]
+  );
+
+  const topEmotions = useMemo(() => {
+    const emotionCount = {};
+    weekEmotions.forEach(e => { emotionCount[e.emotion] = (emotionCount[e.emotion] || 0) + 1; });
+    return Object.entries(emotionCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+  }, [weekEmotions]);
+
+  const topKeywords = useMemo(() => {
+    const wordCount = {};
+    weekMemos
+      .flatMap(m => m.content.split(/\s+/).filter(w => w.length > 1))
+      .forEach(w => { wordCount[w] = (wordCount[w] || 0) + 1; });
+    return Object.entries(wordCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+  }, [weekMemos]);
 
   const generateReport = useCallback(async () => {
     setLoading(true);
@@ -49,22 +65,22 @@ export default function AnalyticsScreen({ memos, emotions, last30Days, reports, 
     setLoadingPatterns(false);
   }, [memos, counselorMode]);
 
-  // Schedule pattern notification
-  const schedulePatternNotification = useCallback((alert, msg) => {
+  // B-1: renamed 'alert' param to 'alertData' — was shadowing window.alert() causing TypeError
+  const schedulePatternNotification = useCallback((alertData, msg) => {
     if (Notification.permission !== 'granted') return;
-    const [h, m] = [alert.avgHour, 0];
+    const h = alertData.avgHour;
     const now2 = new Date();
-    const target = new Date(); target.setHours(h, m, 0, 0);
+    const target = new Date(); target.setHours(h, 0, 0, 0);
     if (target <= now2) target.setDate(target.getDate() + 1);
     const delay = target - now2;
     setTimeout(() => {
-      new Notification(`💡 패턴 감지: ${alert.pattern}`, {
+      new Notification(`💡 패턴 감지: ${alertData.pattern}`, {
         body: msg,
         icon: '/7-ai-pwa/icon-192.png',
-        tag: 'pattern-' + alert.pattern,
+        tag: 'pattern-' + alertData.pattern,
       });
     }, delay);
-    alert('알림이 예약됐어요! 오늘 ' + h + '시에 알림을 드릴게요 💪');
+    window.alert('알림이 예약됐어요! 오늘 ' + h + '시에 알림을 드릴게요 💪');
   }, []);
 
   return (
@@ -165,20 +181,20 @@ export default function AnalyticsScreen({ memos, emotions, last30Days, reports, 
           </div>
         )}
 
-        {patternAlerts.map(alert => (
-          <div key={alert.pattern} className="p-4 rounded-2xl mb-2"
+        {patternAlerts.map(pa => (
+          <div key={pa.pattern} className="p-4 rounded-2xl mb-2"
             style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
-            <p className="text-sm font-semibold text-yellow-400 mb-1">⚡ {alert.days}일 연속 "{alert.pattern}" 패턴</p>
+            <p className="text-sm font-semibold text-yellow-400 mb-1">⚡ {pa.days}일 연속 "{pa.pattern}" 패턴</p>
             <p className="text-sm text-slate-300 leading-relaxed mb-2">
-              {patternMessages[alert.pattern] || `평균 ${alert.avgHour}시경에 발생했어요.`}
+              {patternMessages[pa.pattern] || `평균 ${pa.avgHour}시경에 발생했어요.`}
             </p>
             {Notification.permission === 'granted' && (
               <button
-                onClick={() => schedulePatternNotification(alert, patternMessages[alert.pattern] || '')}
+                onClick={() => schedulePatternNotification(pa, patternMessages[pa.pattern] || '')}
                 className="text-xs px-3 py-1.5 rounded-full"
                 style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}
               >
-                ⏰ {alert.avgHour}시 알림 예약
+                ⏰ {pa.avgHour}시 알림 예약
               </button>
             )}
           </div>

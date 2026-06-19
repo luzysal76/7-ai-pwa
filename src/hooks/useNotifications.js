@@ -31,7 +31,7 @@ export function useNotifications() {
     }, delay);
   }, []);
 
-  // Schedule morning briefing
+  // W-2: SW 메시지 기반 알림 — 탭 종료 후에도 SW가 살아있으면 동작
   const scheduleMorningBriefing = useCallback((message, timeStr = '07:00') => {
     if (Notification.permission !== 'granted') return;
 
@@ -39,18 +39,23 @@ export function useNotifications() {
     const now = new Date();
     const target = new Date();
     target.setHours(hours, minutes, 0, 0);
-
-    // If already past today's time, schedule for tomorrow
-    if (target <= now) {
-      target.setDate(target.getDate() + 1);
-    }
-
+    if (target <= now) target.setDate(target.getDate() + 1);
     const delay = target - now;
-    console.log(`Morning briefing scheduled in ${Math.round(delay / 60000)} minutes`);
 
-    setTimeout(() => {
-      scheduleNotification('🌅 오늘의 브리핑', message);
-    }, delay);
+    // Prefer SW-based scheduling (survives tab close)
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SCHEDULE_NOTIFICATION',
+        title: '🌅 오늘의 브리핑',
+        body: message,
+        delay,
+        tag: 'morning-briefing',
+      });
+    } else {
+      // Fallback: setTimeout (requires tab to stay open)
+      console.log(`[알림] ${Math.round(delay / 60000)}분 후 브리핑 예약 (폴백 모드)`);
+      setTimeout(() => scheduleNotification('🌅 오늘의 브리핑', message), delay);
+    }
   }, [scheduleNotification]);
 
   return { requestPermission, scheduleNotification, scheduleMorningBriefing };

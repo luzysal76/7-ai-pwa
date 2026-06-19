@@ -31,6 +31,18 @@ export default function MemoModal({ onClose, onSave, onSaveEmotion, initialMode 
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // B-4: cleanup SpeechRecognition on unmount — prevents background audio leak
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        try { recognitionRef.current.stop(); } catch {}
+      }
+    };
+  }, []);
+
   // Auto-resize textarea
   const handleTextChange = (e) => {
     setText(e.target.value);

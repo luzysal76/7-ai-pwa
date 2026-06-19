@@ -9,13 +9,16 @@ export default function RadialMenu({ visible, center, templates, onSelect, onClo
   useEffect(() => {
     if (!visible) return;
     const close = (e) => {
-      // If tap is far from center, close
       const dx = e.clientX - center.x;
       const dy = e.clientY - center.y;
       if (Math.sqrt(dx * dx + dy * dy) > DIST + 40) onClose?.();
     };
-    setTimeout(() => window.addEventListener('touchstart', close), 100);
-    return () => window.removeEventListener('touchstart', close);
+    // B-5: store timer ID so it can be cleared on unmount/re-run
+    const timerId = setTimeout(() => window.addEventListener('touchstart', close), 100);
+    return () => {
+      clearTimeout(timerId);
+      window.removeEventListener('touchstart', close);
+    };
   }, [visible, center, onClose]);
 
   if (!visible) return null;

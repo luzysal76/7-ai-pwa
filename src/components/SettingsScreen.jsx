@@ -70,14 +70,32 @@ export default function SettingsScreen({ settings, updateSettings, templates, up
     }
   };
 
+  // S-2: selective delete — only fm_ prefix keys, not the entire localStorage
   const clearData = () => {
-    if (confirm('모든 데이터를 삭제할까요? 되돌릴 수 없어요.')) { localStorage.clear(); window.location.reload(); }
+    if (confirm('모든 데이터를 삭제할까요? 되돌릴 수 없어요.')) {
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('fm_'))
+        .forEach(key => localStorage.removeItem(key));
+      window.location.reload();
+    }
   };
 
+  // S-3: revoke ObjectURL immediately after click to prevent memory leak
   const exportData = () => {
-    const data = { memos: JSON.parse(localStorage.getItem('fm_memos') || '[]'), emotions: JSON.parse(localStorage.getItem('fm_emotions') || '[]'), exportedAt: new Date().toISOString() };
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })), download: `floating-memo-${new Date().toLocaleDateString('ko-KR').replace(/\./g,'-')}.json` });
+    const data = {
+      memos: JSON.parse(localStorage.getItem('fm_memos') || '[]'),
+      emotions: JSON.parse(localStorage.getItem('fm_emotions') || '[]'),
+      exportedAt: new Date().toISOString(),
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const a = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `floating-memo-${new Date().toLocaleDateString('ko-KR').replace(/\./g, '-')}.json`,
+    });
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const BTN_SIZES = [{ size: 40, label: 'S' }, { size: 56, label: 'M' }, { size: 72, label: 'L' }];
