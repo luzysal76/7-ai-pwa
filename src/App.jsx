@@ -125,7 +125,10 @@ export default function App() {
       <div className="flex flex-col" style={{ minHeight: '100dvh', background: 'linear-gradient(180deg,#0f172a,#0a0f1e)' }}>
         <div style={{ height: 'env(safe-area-inset-top)' }} />
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="font-bold text-white text-sm">✏️ 플로팅 메모</span>
+          <div className="flex items-center gap-2">
+            <img src="/7-ai-pwa/logo.png" alt="로고" className="w-7 h-7 rounded-xl object-contain" />
+            <span className="font-bold text-white text-sm">플로팅 메모</span>
+          </div>
           <button onClick={() => updateSettings({ simpleMode: false })} className="text-xs text-slate-500 border border-slate-700 px-2 py-1 rounded-lg">전체 모드</button>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -153,8 +156,7 @@ export default function App() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>✏️</div>
+          <img src="/7-ai-pwa/logo.png" alt="로고" className="w-8 h-8 rounded-xl object-contain" />
           <span className="font-bold text-white">플로팅 메모</span>
           {settings.counselorMode && <span className="text-xs px-1.5 py-0.5 rounded-full"
             style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.25)' }}>상담사 모드</span>}
