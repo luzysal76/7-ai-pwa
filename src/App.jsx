@@ -10,6 +10,7 @@ import AIConsentModal from './components/AIConsentModal.jsx'; // S-1
 import { PRIORITY_COLORS } from './constants/priority.js'; // Q-1
 import { settingsStorage } from './utils/storage.js'; // S-1 initial consent check
 import { useMemos, useEmotions, useSettings, useWeather, useReports, useTemplates } from './hooks/useStorage.js';
+import { initGoogleCalendar, createCalendarEvent, isGCalAuthed, signInGoogleCalendar } from './utils/googleCalendar.js';
 
 const TABS = [
   { key: 'home',     icon: Home,       label: '홈' },
@@ -62,6 +63,17 @@ export default function App() {
   const pomodoroTrigger = useRef({});
   const pomodoroHidden = usePomodoroHide(settings.pomodoroMinutes, pomodoroTrigger);
 
+  // Initialize Google Calendar when GIS script is ready
+  useEffect(() => {
+    if (!settings.googleClientId) return;
+    const tryInit = () => initGoogleCalendar(settings.googleClientId);
+    if (window.google?.accounts?.oauth2) {
+      tryInit();
+    } else {
+      window.addEventListener('gis-ready', tryInit, { once: true });
+    }
+  }, [settings.googleClientId]);
+
   // AI classification result handler
   useEffect(() => {
     const onClassified = (e) => {
@@ -107,11 +119,32 @@ export default function App() {
     setShowModal(true);
   }, []);
 
-  const handleSaveMemo = useCallback((memo) => {
+  const handleSaveMemo = useCallback(async (memo) => {
     const newMemo = addMemo(memo);
-    // If focus mode, set as focus goal
     if (modalMode === 'focus' && newMemo) setFocusGoal(newMemo.id);
-  }, [addMemo, modalMode, setFocusGoal]);
+
+    // Auto-sync to Google Calendar if schedule is set and user is authed
+    if (newMemo?.scheduleAt && settings.googleCalendarEnabled) {
+      if (isGCalAuthed()) {
+        try {
+          const evt = await createCalendarEvent({
+            title: newMemo.content || '플로팅 메모',
+            startDateTime: newMemo.scheduleAt,
+            description: newMemo.content,
+          });
+          if (evt?.id) updateMemo(newMemo.id, { gcalEventId: evt.id });
+        } catch (err) {
+          if (err.message === 'token-expired' || err.message === 'not-authed') {
+            // Prompt re-auth silently
+            signInGoogleCalendar();
+          }
+        }
+      } else if (settings.googleClientId) {
+        // Not authed yet — sign in, then sync (user will need to retry)
+        signInGoogleCalendar();
+      }
+    }
+  }, [addMemo, modalMode, setFocusGoal, updateMemo, settings]);
 
   const handleSaveEmotion = useCallback((emotion, note) => {
     addEmotion(emotion, note);

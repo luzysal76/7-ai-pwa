@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Bell, Trash2, Download, ChevronRight, Monitor, Brain, Clock, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, Trash2, Download, ChevronRight, Monitor, Brain, Clock, Shield, Calendar } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications.js';
+import { isGCalAuthed, signInGoogleCalendar, signOutGoogleCalendar, initGoogleCalendar } from '../utils/googleCalendar.js';
 
 function Section({ title, icon, children }) {
   return (
@@ -51,6 +52,45 @@ export default function SettingsScreen({ settings, updateSettings, templates, up
   const { requestPermission, scheduleMorningBriefing } = useNotifications();
   const [saved, setSaved] = useState(false);
   const [editTpl, setEditTpl] = useState(null);
+  const [gcalAuthed, setGcalAuthed] = useState(() => isGCalAuthed());
+  const [clientIdInput, setClientIdInput] = useState(settings.googleClientId || '');
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const onAuthed = () => setGcalAuthed(true);
+    const onSignedOut = () => setGcalAuthed(false);
+    window.addEventListener('gcal-authed', onAuthed);
+    window.addEventListener('gcal-signed-out', onSignedOut);
+    return () => {
+      window.removeEventListener('gcal-authed', onAuthed);
+      window.removeEventListener('gcal-signed-out', onSignedOut);
+    };
+  }, []);
+
+  const handleSaveClientId = () => {
+    const id = clientIdInput.trim();
+    updateSettings({ googleClientId: id });
+    if (id) {
+      const ok = initGoogleCalendar(id);
+      if (!ok) {
+        // GIS not loaded yet, will be initialized when it loads
+      }
+    }
+    showSaved();
+  };
+
+  const handleGCalConnect = () => {
+    if (!settings.googleClientId) {
+      alert('먼저 Google Client ID를 입력하고 저장하세요.');
+      return;
+    }
+    if (gcalAuthed) {
+      signOutGoogleCalendar();
+    } else {
+      initGoogleCalendar(settings.googleClientId);
+      signInGoogleCalendar();
+    }
+  };
 
   const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 1500); };
 
@@ -261,6 +301,45 @@ export default function SettingsScreen({ settings, updateSettings, templates, up
               ))}
             </div>
           }
+        />
+      </Section>
+
+      {/* Google Calendar */}
+      <Section title="Google 캘린더 연동" icon={<Calendar size={12} />}>
+        <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+            스케쥴이 설정된 메모를 Google 캘린더에 자동 등록합니다.<br />
+            <span className="text-slate-600">
+              설정: Google Cloud Console → 사용자 인증 정보 → OAuth 2.0 클라이언트 ID 생성<br />
+              승인된 JS 출처: <code className="text-indigo-400">https://luzysal76.github.io</code>
+            </span>
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="123456789-xxxx.apps.googleusercontent.com"
+              value={clientIdInput}
+              onChange={e => setClientIdInput(e.target.value)}
+              className="flex-1 text-xs bg-transparent border rounded-lg px-3 py-2 text-slate-200 outline-none"
+              style={{ borderColor: 'rgba(99,102,241,0.35)' }}
+            />
+            <button onClick={handleSaveClientId}
+              className="px-3 py-2 rounded-lg text-xs font-medium"
+              style={{ background: 'rgba(99,102,241,0.25)', color: '#818cf8' }}>
+              저장
+            </button>
+          </div>
+        </div>
+        <Row label="Google 캘린더 연결"
+          sub={gcalAuthed ? '✅ 연결됨 — 클릭하면 연결 해제' : settings.googleClientId ? '클릭하면 Google 로그인' : 'Client ID를 먼저 입력하세요'}
+          icon={<Calendar size={20} color={gcalAuthed ? '#34d399' : '#818cf8'} />}
+          iconBg={gcalAuthed ? 'rgba(52,211,153,0.12)' : 'rgba(99,102,241,0.12)'}
+          onClick={handleGCalConnect}
+          right={<ChevronRight size={16} color="#475569" />}
+        />
+        <Row label="스케쥴 자동 동기화" sub="메모 저장 시 캘린더에 자동 추가" last
+          icon={<span className="text-lg">🔄</span>}
+          right={<Toggle value={settings.googleCalendarEnabled} onChange={v => { updateSettings({ googleCalendarEnabled: v }); showSaved(); }} />}
         />
       </Section>
 

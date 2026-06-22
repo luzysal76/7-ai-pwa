@@ -29,6 +29,9 @@ export const memoStorage = {
       tags: memo.tags || [],
       priority: memo.priority || null,
       category: memo.category || null,
+      images: memo.images || [],        // NEW: array of base64 strings
+      scheduleAt: memo.scheduleAt || null, // NEW: ISO date string
+      gcalEventId: memo.gcalEventId || null, // NEW: Google Calendar event ID
       done: false,
       isFocus: false,
       createdAt: new Date().toISOString(),
@@ -174,6 +177,9 @@ export const settingsStorage = {
       dndStart: '22:00',
       dndEnd: '08:00',
       pomodoroMinutes: 25,
+      // Google Calendar
+      googleClientId: '',
+      googleCalendarEnabled: false,
     });
   },
   update(updates) {
